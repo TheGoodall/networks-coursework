@@ -1,4 +1,4 @@
-# Echo server program
+# server program
 import socket
 import sys
 import threading
@@ -6,19 +6,27 @@ import threading
 
 def process_data(data):
 
-    return "1"
+    return "hello, world".encode()
+
 
 
 
 def handle_connection(conn):
-    with conn:
-        data = conn.recv(1024)
-        if data:
-            data = process_data(data)
-            conn.send(data)
+    data = conn.recv(1024)
+    if data:
+        data = process_data(data)
+        conn.send(data)
+    conn.close()
+
 
 HOST = "127.0.0.1"
 PORT = 12345
+
+if len(sys.argv) > 1:
+    HOST = sys.argv[1]
+if len(sys.argv) > 2:
+    PORT = sys.argv[2]
+
 s = None
 
 for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
@@ -40,7 +48,9 @@ for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
 if s is None:
     print('could not open socket')
     sys.exit(1)
+
 while 1:
     conn, addr = s.accept()
     thread = threading.Thread(target=handle_connection, args=(conn,))
     thread.start()
+

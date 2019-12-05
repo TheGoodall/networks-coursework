@@ -1,4 +1,4 @@
-# Echo client program
+# client program
 import socket
 import sys
 
@@ -22,7 +22,7 @@ for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC, socket.SOCK_STREAM):
 if s is None:
     print('could not open socket')
     sys.exit(1)
-with s:
-    s.sendall(b'Hello, world')
-    data = s.recv(1024)
+s.sendall(b'Hello, world')
+data = s.recv(1024)
+s.close()
 print('Received', repr(data))
