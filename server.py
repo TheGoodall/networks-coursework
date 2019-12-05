@@ -1,10 +1,26 @@
 # Echo server program
 import socket
 import sys
+import threading
+
+
+def process_data(data):
+
+    return "1"
+
+
+
+def handle_connection(conn):
+    with conn:
+        data = conn.recv(1024)
+        if data:
+            data = process_data(data)
+            conn.send(data)
 
 HOST = "127.0.0.1"
 PORT = 12345
 s = None
+
 for res in socket.getaddrinfo(HOST, PORT, socket.AF_UNSPEC,
                               socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
     af, socktype, proto, canonname, sa = res
@@ -25,11 +41,6 @@ if s is None:
     print('could not open socket')
     sys.exit(1)
 while 1:
-
     conn, addr = s.accept()
-    with conn:
-        print('Connected by', addr)
-        while True:
-            data = conn.recv(1024)
-            if not data: break
-            conn.send(data)
+    thread = threading.Thread(target=handle_connection, args=(conn,))
+    thread.start()
