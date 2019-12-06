@@ -1,19 +1,36 @@
 # Server program
-import socket
-import sys
-import threading
+import socket, sys, threading, json, datetime
+from pathlib import Path
 
-import json
-
+loglock = threading.Lock()
 
 def get_boards():
-    return "get boards"
+    path= Path('./board')
+    boards = [x.name for x in path.iterdir() if x.is_dir()]
+    return boards
 
 
 def get_messages(board_title):
-    return "content of message board "+board_title[0]
+    path = Path("./board/"+str(board_title))
+    messages = []
+    for x in path.iterdir():
+        with x.open() as f:
+            messages.append([x.name , f.read()])
+    messages.sort()
+    del messages[100:]
+    return messages
+
+
 def post_message(message_details):
-    return "message posted"
+
+    datetimestr = str(datetime.datetime.now()).split(".")[0].replace("-", "").replace(" ","-")
+    path = Path("./board/" + message_details[0]+"/"+ datetimestr + "-" + message_details[1])
+    path.touch()
+    with open(path, "w") as f:
+        f.write(message_details[2])
+
+
+    return ["success"]
 
 def process_data(data):
     data = json.loads(data)
@@ -23,7 +40,7 @@ def process_data(data):
             response = get_boards()
         elif len(data) == 2:
             if data[0] == "GET_MESSAGES":
-                response = get_messages(data[1])
+                response = get_messages(data[1][0])
             elif data[0] == "POST_MESSAGE":
                 response = post_message(data[1])
             else:
@@ -33,12 +50,12 @@ def process_data(data):
     else:
         response = "ERROR"
 
-    return json.dumps(response).encode()
+    return json.dumps(response).encode(), data[0]
 
 
 
 
-def handle_connection(conn):
+def handle_connection(conn, addr):
     data = b""
     while 1:
 
@@ -48,10 +65,17 @@ def handle_connection(conn):
         else:
             break
     if data:
-        data = process_data(data)
+        data = data.decode()
+
+        data, message_type = process_data(data)
         conn.sendall(data)
     conn.close()
-
+    status = "Error" if data == "ERROR" else "OK"
+    loglock.acquire()
+    logpath = Path("./server.log")
+    with open(logpath, "a") as logfile:
+        logfile.write("\n"+str(datetime.datetime.now())+"    "+str(addr)+"    "+str(message_type)+"  "+status)
+    loglock.release()
 
 
 HOST = "127.0.0.1"
@@ -81,6 +105,6 @@ if s is None:
 
 while 1:
     conn, addr = s.accept()
-    thread = threading.Thread(target=handle_connection, args=(conn,))
+    thread = threading.Thread(target=handle_connection, args=(conn,addr))
     thread.start()
 
