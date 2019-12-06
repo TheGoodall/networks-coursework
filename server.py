@@ -73,7 +73,7 @@ def handle_connection(conn, addr):
     status = "Error" if data == "ERROR" else "OK"
     loglock.acquire()
     logpath = Path("./server.log")
-    with open(logpath, "a") as logfile:
+    with open(str(logpath), "a") as logfile:
         logfile.write("\n"+str(datetime.datetime.now())+"    "+str(addr)+"    "+str(message_type)+"  "+status)
     loglock.release()
 
