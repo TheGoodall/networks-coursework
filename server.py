@@ -7,15 +7,20 @@ loglock = threading.Lock()
 def get_boards():
     path= Path('./board')
     boards = [x.name for x in path.iterdir() if x.is_dir()]
+    if not boards:
+        return ["ERROR", "no boards defined"]
     return boards
 
 
 def get_messages(board_title):
     path = Path("./board/"+str(board_title))
     messages = []
-    for x in path.iterdir():
-        with x.open() as f:
-            messages.append([x.name , f.read()])
+    try:
+        for x in path.iterdir():
+            with x.open() as f:
+                messages.append([x.name , f.read()])
+    except FileNotFoundError:
+        return ["ERROR", "Board does not exist"]
     messages.sort()
     del messages[100:]
     return messages
@@ -23,7 +28,7 @@ def get_messages(board_title):
 
 def post_message(message_details):
 
-    datetimestr = str(datetime.datetime.now()).split(".")[0].replace("-", "").replace(" ","-")
+    datetimestr = str(datetime.datetime.now()).split(".")[0].replace("-", "").replace(" ","-").replace(":", "")
     path = Path("./board/" + message_details[0]+"/"+ datetimestr + "-" + message_details[1])
     path.touch()
     with open(path, "w") as f:
@@ -44,13 +49,20 @@ def process_data(data):
             elif data[0] == "POST_MESSAGE":
                 response = post_message(data[1])
             else:
-                response = "ERROR"
+                response = ["ERROR", "invalid message"]
         else:
-            response = "ERROR"
+            response = ["ERROR", "invalid message"]
     else:
-        response = "ERROR"
+        response = ["ERROR","invalid message"]
+    if response:
 
-    return json.dumps(response).encode(), data[0]
+        if response[0] == "ERROR":
+            status = "ERROR"
+        else:
+            status = "OK"
+    else:
+        status = "OK"
+    return json.dumps(response).encode(), data[0], status
 
 
 
@@ -67,10 +79,10 @@ def handle_connection(conn, addr):
     if data:
         data = data.decode()
 
-        data, message_type = process_data(data)
+        data, message_type, status = process_data(data)
         conn.sendall(data)
     conn.close()
-    status = "Error" if data == "ERROR" else "OK"
+
     loglock.acquire()
     logpath = Path("./server.log")
     with open(str(logpath), "a") as logfile:

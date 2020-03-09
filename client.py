@@ -56,6 +56,9 @@ def make_request(request):
 
 boards = make_request(["GET_BOARDS"])
 
+if boards:
+    if boards[0] == "ERROR":
+        print(boards[0] + " - " + boards[1])
 
 
 def check_board_num(num):
@@ -63,7 +66,7 @@ def check_board_num(num):
         num = int(num)
     except ValueError:
         return False
-    if num > 0 and num <= len(boards) + 1:
+    if num > 0 and num <= len(boards):
         return num
     else:
         return False
@@ -90,13 +93,20 @@ while 1:
             title = input("Write a title:\n> ")
             message = input("Write a message:\n> ")
             response = make_request(["POST_MESSAGE",[boards[num-1], title, message]])
+            if response:
+                if response[0] == "ERROR":
+                    print(response[0] + " - " + response[1])
         else:
             print("ERROR, not a board")
             continue
 
     elif num:
         response = make_request(["GET_MESSAGES", [boards[num-1]]])
+        if response:
+            if response[0] == "ERROR":
+                print(response[0] + " - " + response[1])
         for message in response:
+            print(message)
             title = message[0].replace("_", " ")
             body = message[1]
             date = title.split("-")[0:2]
@@ -105,7 +115,7 @@ while 1:
             date = date[6:8]+"/"+date[4:6]+"/"+date[0:4]
             time = time[0:2]+":"+time[2:4]+":"+time[4:6]
             title = title.split("-")[-1]
-            print("title: "+str(title)+"\ndate: "+str(date)+" - "+str(time)+"\nmessage: "+str(body))
+            print("title: "+str(title)+"\ndate: "+str(date)+" - "+str(time)+"\nmessage: "+str(body)+"\n\n")
     else:
         print("ERROR, not a valid command")
         continue
